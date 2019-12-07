@@ -83,55 +83,48 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
         total[y][label] = total[y][label] + 1.0
 
     bestConditionals = {}
-    naiveConditional = {}
     bestAccuracy = None
     # Evaluate each k, and use the one that yields the best accuracy
     for k in kgrid or [0.0]:
       correct = 0
-      correct2 = 0
       smoothprobability = {}
-      # for all features create 0-4 util counters
+      # for all features create 0-3 util counters
       # <feature>: {0: {}, 1: {}, 2: {}, 3: {}, 4: {}}
       for x in self.features:
-        smoothprobability[x] = {0: util.Counter(), 1: util.Counter(), 2: util.Counter(), 3: util.Counter(), 4: util.Counter()}
-        naiveConditional[x] = {0: util.Counter(), 1: util.Counter(), 2: util.Counter(), 3: util.Counter(), 4: util.Counter()}
+        smoothprobability[x] = {0: util.Counter(), 1: util.Counter(), 2: util.Counter()}
       #smoothing
       #for all features
       for x in self.features:
         #for all 0-4 values of features
-        for value in [0, 1,2,3,4]:
+        for value in [0,1,2]:
           #for all 1-9
           for y in self.legalLabels:
             #smooth it out
             #basically holds the probability that a given lighted up feature is a certain label
             # P(phi[](x) | y = 1...9) => ex P(phi[0] | y(1) ) = Feature 1, (7,3) has a .96% chance to light my way 0 times for 0, 91%  for 4
-            naiveConditional[x][value][y] = (individualcount[x][value][y]+1/k) / (total[x][y] + 1/k)
-            smoothprobability[x][value][y] = (individualcount[x][value][y] + k) / (total[x][y] + k * 5)
-
-      # Check the accuracy associated with this k
-      self.naiveConditional = naiveConditional
+            smoothprobability[x][value][y] = (individualcount[x][value][y] + k) / (total[x][y] + k)
+            # Check the accuracy associated with this k
       self.smoothprobability = smoothprobability
-      guess2 = self.classify2(validationData)
+      dictionaryForLabels = []
+      for y in self.legalLabels:
+        line = []
+        for i in range(len(trainingLabels)):
+          if trainingLabels[i] == y:
+            line.append(i)
+        dictionaryForLabels.append(line)
+
+
       guesses = self.classify(validationData)
       for i, guess in enumerate(guesses):
         if validationLabels[i] == guess:
           correct = correct + 1.0
-      for i, guess in enumerate(guess2):
-        if validationLabels[i] == guess:
-          correct2 = correct2 + 1.0
       accuracy = correct / len(guesses)
-      accuracy2 = correct2 / len(guesses) #accuracy ended up being bad doing it without logZ
-      #print(accuracy)
-      #print(accuracy2)
-
       # Keep the best k iteration
       if accuracy > bestAccuracy or bestAccuracy is None:
         bestAccuracy = accuracy
         bestConditionals = smoothprobability
         self.k = k
-      #if accuracy2 > accuracy or bestAccuracy is None:
-       # bestConditionals = naiveConditional
-
+    print(self.k)
 
     self.smoothprobability = bestConditionals
 
@@ -147,31 +140,29 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
       posterior = self.calculateLogJointProbabilities(datum)
       guesses.append(posterior.argMax())#from LogJoint you are given the log probability of 0-9, pick the lowest digit
       self.posteriors.append(posterior)
+
     return guesses
 
-  def classify2(self, testData):
+  def classify2(self, testData, validationLabels):
     """
     Classify the data based on the posterior distribution over labels.
 
     You shouldn't modify this method.
     """
     guesses = []
+    a = 0
     self.argmax = [] # Log posteriors are stored for later data analysis (autograder).
     #self.
     for datum in testData:
       argmax = self.calculate(datum)
       guesses.append(argmax.argMax())#from LogJoint you are given the log probability of 0-9, pick the lowest digit
       self.argmax.append(argmax)
+      for i, guess in enumerate(guesses):
+        if validationLabels[i] != guess:
+          a += 1
     return guesses
-  def calculateLogJointProbabilities(self, datum):
-    """
-    Returns the log-joint distribution over legal labels and the datum.
-    Each log-probability should be stored in the log-joint counter, e.g.
-    logJoint[3] = <Estimate of log( P(Label = 3, datum) )>
 
-    To get the list of all possible features or labels, use self.features and
-    self.legalLabels.
-    """
+  def calculateLogJointProbabilities(self, datum):
     logJoint = util.Counter()
 
     "*** YOUR CODE HERE ***"
@@ -181,29 +172,20 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
       for y in self.smoothprobability:
         prob = self.smoothprobability[y][datum[y]][x]
         logJoint[x] += (prob and m.log(prob))
-
     return logJoint
 
   def calculate(self, datum):
-    """
-    Returns the log-joint distribution over legal labels and the datum.
-    Each log-probability should be stored in the log-joint counter, e.g.
-    logJoint[3] = <Estimate of log( P(Label = 3, datum) )>
 
-    To get the list of all possible features or labels, use self.features and
-    self.legalLabels.
-    """
-    joint = util.Counter()
+    logJoint = util.Counter()
 
     "*** YOUR CODE HERE ***"
-    #for all labels
+    # for all labels
     for x in self.legalLabels:
-      joint[x] = self.prior[x]
+      logJoint[x] = m.log(self.prior[x])
       for y in self.naiveConditional:
         prob = self.naiveConditional[y][datum[y]][x]
-        joint[x] = joint[x]*prob
-
-    return joint
+        logJoint[x] += (prob and m.log(prob))
+    return logJoint
 
   def findHighOddsFeatures(self, label1, label2):
     """
