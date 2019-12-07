@@ -17,6 +17,7 @@ import util
 import random
 import numpy as np
 import statistics
+import time
 
 PRINT = True
 
@@ -82,13 +83,14 @@ class PerceptronClassifier:
         for iteration in range(self.max_iterations):
             incorrect = 0
             print "Starting iteration ", iteration, "..."
-            randomrange = list(range(100))
+            randomrange = list(range(10))
             random.shuffle(randomrange)
             for i in range(len(trainingData)):
                 "*** YOUR CODE HERE ***"
                 bestScore = None
                 bestY = None
                 datum = trainingData[randomrange[i]]
+                datum = trainingData[i]
                 scorearray = {}
                 for y in self.legalLabels:
                     score = datum * self.weights[y]
@@ -100,6 +102,7 @@ class PerceptronClassifier:
                     scorearray[y] = perceptronScore
                     # z = z + (dictionary.get((a,b)) * trueWeight[y].get((a,b)))
                 actualY = trainingLabels[randomrange[i]]
+                actualY = trainingLabels[i]
                 # Wrong guess, update weights
                 while bestY != actualY:
                     bias[actualY] = bias[actualY] + 1
@@ -119,14 +122,11 @@ class PerceptronClassifier:
             print(incorrect)
             if incorrect == 0:
                 break
-
-
-
-
         ##########MORE TESTING#############
-
+        ##EPIPHANY##
+        ##EPIPHANY##
+        ##EPIPHANY##
         incorrect = 0
-
         dictionaryForLabels = []
 
         for y in self.legalLabels:
@@ -135,6 +135,27 @@ class PerceptronClassifier:
             if trainingLabels[i] == y:
               line.append(i)
           dictionaryForLabels.append(line)
+
+        i = 0
+        j = 0
+        print("stuck")
+        while j < len(dictionaryForLabels):
+            epiphanylist = {}
+            for y in self.features:
+                epiphanylist[y] = 0
+            while i < len(dictionaryForLabels[j]):
+                datum = trainingData[dictionaryForLabels[j][i]]
+                for k, v in self.weights[0].items():
+                    if datum[k] == 0:
+                        epiphanylist[k] += 1
+                i += 1
+            for k, v in self.weights[j].items():
+                if epiphanylist[k] == len(dictionaryForLabels[j]):
+                    self.weights[j][k] = 0
+            j += 1
+        ########BULK
+        ########BULK
+        ########BULK
         x = 0
         j = 0
         i = 0
@@ -148,8 +169,7 @@ class PerceptronClassifier:
                 actualY = trainingLabels[dictionaryForLabels[j][i]]
                 bestY = max(scorearray, key=scorearray.get)
 
-                standardDeviation = statistics.stdev(scorearray[k] for k in scorearray)
-                standardAverage = statistics.mean(scorearray[k] for k in scorearray)
+
                 # Wrong guess, update weights
                 while bestY != actualY:
                     self.bias[actualY] = self.bias[actualY] + 1
@@ -167,47 +187,47 @@ class PerceptronClassifier:
                     incorrect += 1
                     print("changed")
                 y = 0
+
+                datumcounter = 0
+                for k, v in self.weights[y].items():
+                    if datum[k] > 0:
+                        datumcounter = datumcounter + datum[k]
+
+                timeout = time.time() + 60 * 2
+
                 while y < 10:
                     # Basically: self.weights[y] = self.weights[y] - datum(.5)
-                    if scorearray.get(y) > (standardAverage + standardDeviation) and y != actualY:
+                    # if other weights are too high
+                    standardDeviation = statistics.stdev(scorearray[k] for k in scorearray)
+                    standardAverage = statistics.mean(scorearray[k] for k in scorearray)
+                    if scorearray.get(y) > (max(scorearray, key=scorearray.get)*.70) and y != actualY:
                         for k, v in self.weights[y].items():
-                            self.weights[y][k] = v - datum[k] * .25
+                            self.weights[y][k] = v - datum[k] * .2
                         score = (datum * self.weights[y]) + bias[y]
                         scorearray[y] = score
                         incorrect += 1
-                    score = scorearray.get(max(scorearray, key=scorearray.get))
-                    if (scorearray.get(y) > (score - standardDeviation)) and y != actualY:
-                        # Basically: self.weights[y] = self.weights[y] - datum(.25)
-                        for k, v in self.weights[y].items():
-                            self.weights[y][k] = v - datum[k] * .25
-                        # Basically: self.weights[y] = self.weights[y] +  datum(.25)
-                        for k, v in self.weights[actualY].items():
-                            self.weights[actualY][k] = v + datum[k] * .25
-                        score = (datum * self.weights[y]) + bias[y]
-                        scorearray[y] = score
-                        score = (datum * self.weights[actualY]) + bias[actualY]
-                        scorearray[actualY] = score
-                        incorrect += 1
-                    if scorearray.get(y) > 0 and y != actualY:
-                        # Basically: self.weights[y] = self.weights[y] - datum(.15)
-                        # Reduce weights by 10%
-                        for k, v in self.weights[y].items():
-                            self.weights[y][k] = v - datum[k] * .1
-                        score = (datum * self.weights[y]) + bias[y]
-                        scorearray[y] = score
-                        incorrect += 1
-                        print("reduced", y)
+                        print("decreasedy<s+s", actualY)
+                        standardDeviation = statistics.stdev(scorearray[k] for k in scorearray)
+                        standardAverage = statistics.mean(scorearray[k] for k in scorearray)
                         y = -1
-                    if scorearray.get(actualY) < 0:
-                        # Increase weights by 50%
+
+                    # Basically: self.weights[actualY] = self.weights[actualY] * datum(.5)
+                    # if max weight isz too high
+                    if scorearray.get(actualY) < datumcounter *.9:
+                        # Increase weights by 20%
                         for k, v in self.weights[actualY].items():
                             self.weights[actualY][k] = v + datum[k] * .5
                         score = (datum * self.weights[actualY]) + bias[actualY]
                         scorearray[actualY] = score
                         incorrect += 1
-                        print("increased", actualY)
+                        print("increased<", actualY)
                         y = -1
+
+
+                    score = scorearray.get(max(scorearray, key=scorearray.get))
+
                     y += 1
+                datumcounter = 0
                 i += 1
             i = 0
             if incorrect != 0:
@@ -216,15 +236,13 @@ class PerceptronClassifier:
                 i = 0
             else:
                 j += 1
-        print("donzo")
-        ####Final Iteration###
+        ###Last#######
         for iteration in range(self.max_iterations):
             incorrect = 0
             print "Starting iteration ", iteration, "..."
-            randomrange = list(range(100))
+            randomrange = list(range(10))
             random.shuffle(randomrange)
             for i in range(len(trainingData)):
-                "*** YOUR CODE HERE ***"
                 bestScore = None
                 bestY = None
                 datum = trainingData[randomrange[i]]
@@ -258,9 +276,12 @@ class PerceptronClassifier:
             print(incorrect)
             if incorrect == 0:
                 break
-        #guesses = perceptron.classify(validationData)
-        #correct = [guesses[i] == validationLabels[i] for i in range(len(validationLabels))].count(True)
-        #print(correct)
+
+        print("donzo")
+
+        guesses = self.classify(validationData)
+        correct = [guesses[i] == validationLabels[i] for i in range(len(validationLabels))].count(True)
+        print(correct)
 
 
     def findHighWeightFeatures(self, label):
@@ -271,6 +292,6 @@ class PerceptronClassifier:
 
         "*** YOUR CODE HERE ***"
         #featuresWeights = self.weights[label].sortedKeys()[0z:100]
-        featuresWeights = [k for k, v in sorted(self.weights[label].items(), key=lambda (k, v): (-v, k))][0:100]
+        featuresWeights = [k for k, v in sorted(self.weights[label].items(), key=lambda (k, v): (-v, k))][0:120]
 
         return featuresWeights
