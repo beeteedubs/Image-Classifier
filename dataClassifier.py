@@ -8,6 +8,7 @@
 
 # This file contains feature extraction methods and harness
 # code for data classification
+from copy import copy
 
 import mostFrequent
 import naiveBayes
@@ -16,6 +17,7 @@ import mira
 import samples
 import sys
 import util
+import time
 
 TEST_SET_SIZE = 100
 DIGIT_DATUM_WIDTH=28
@@ -95,7 +97,19 @@ def enhancedFeatureExtractorFace(datum):
   Your feature extraction playground for faces.
   It is your choice to modify this.
   """
-  features =  basicFeatureExtractorFace(datum)
+  # features =  basicFeatureExtractorDigit(datum)
+
+  a = datum.getPixels()
+  features = util.Counter()
+  for x in range(FACE_DATUM_WIDTH):
+    for y in range(FACE_DATUM_HEIGHT):
+      if datum.getPixel(x, y) == 2:
+        features[(x, y)] = 2
+      elif datum.getPixel(x, y) == 1:
+        features[(x, y)] = 1
+      else:
+        features[(x, y)] = 0
+
   return features
 
 def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage):
@@ -176,8 +190,8 @@ def readCommand( argv ):
 
   parser.add_option('-c', '--classifier', help=default('The type of classifier'), choices=['mostFrequent', 'nb', 'naiveBayes', 'perceptron', 'mira', 'minicontest'], default='perceptron')
   parser.add_option('-d', '--data', help=default('Dataset to use'), choices=['digits', 'faces'], default='digits')
-  parser.add_option('-t', '--training', help=default('The size of the training set'), default=100, type="int")
-  parser.add_option('-f', '--features', help=default('Whether to use enhanced features'), default=False, action="store_true")
+  parser.add_option('-t', '--training', help=default('The size of the training set'), default=400, type="int")
+  parser.add_option('-f', '--features', help=default('Whether to use enhanced features'), default=True, action="store_true")
   parser.add_option('-o', '--odds', help=default('Whether to compute odds ratios'), default=False, action="store_true")
   parser.add_option('-1', '--label1', help=default("First label in an odds ratio comparison"), default=0, type="int")
   parser.add_option('-2', '--label2', help=default("Second label in an odds ratio comparison"), default=1, type="int")
@@ -327,22 +341,35 @@ def runClassifier(args, options):
   testData = map(featureFunction, rawTestData)
 
   # Conduct training and testing
-  print ("Training...")
-  #basically trains the data
-  classifier.train(trainingData, trainingLabels, validationData, validationLabels)
-  print ("Validating...")
-  guesses = classifier.classify(validationData)
-  correct = [guesses[i] == validationLabels[i] for i in range(len(validationLabels))].count(True)
-  print (str(correct), ("correct out of " + str(len(validationLabels)) + " (%.1f%%).") % (100.0 * correct / len(validationLabels)))
-  print ("Testing...")
-  guesses = classifier.classify(testData)
-  correct = [guesses[i] == testLabels[i] for i in range(len(testLabels))].count(True)
-  print (str(correct), ("correct out of " + str(len(testLabels)) + " (%.1f%%).") % (100.0 * correct / len(testLabels)))
+  copydata = copy(trainingData)
+  copylabel = copy(trainingLabels)
+  begin = time.time()
+  for percentageOfData in range(10):
+    start = time.time()
+    trainingData = copy(copydata)
+    trainingLabels = copy(copylabel)
+    del trainingData[numTraining/10 * (percentageOfData+1):numTraining]
+    del trainingLabels[numTraining/10 * (percentageOfData+1):numTraining]
+    print ("Training: %d " % (numTraining/10 * (percentageOfData+1)))
+    # basically trains the data
+    classifier.train(trainingData, trainingLabels, validationData, validationLabels)
+    print ("Validating...")
+    guesses = classifier.classify(validationData)
+    correct = [guesses[i] == validationLabels[i] for i in range(len(validationLabels))].count(True)
+    print (str(correct),
+           ("correct out of " + str(len(validationLabels)) + " (%.1f%%).") % (100.0 * correct / len(validationLabels)))
+    print ("Testing...")
+    guesses = classifier.classify(testData)
+    correct = [guesses[i] == testLabels[i] for i in range(len(testLabels))].count(True)
+    print ( str(correct), ("correct out of " + str(len(testLabels)) + " (%.1f%%).") % (100.0 * correct / len(testLabels)))
+    elapsed_time_fl = (time.time() - start)
+    print ("%d secs" % (elapsed_time_fl))
+  totaltime = (time.time() - begin)
+  print("Total time: %d" % (totaltime))
 
 
 
-
-  analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
+  #analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
 
 
 

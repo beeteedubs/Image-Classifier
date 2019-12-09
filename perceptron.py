@@ -55,19 +55,7 @@ class PerceptronClassifier:
         return guesses
 
     def train(self, trainingData, trainingLabels, validationData, validationLabels):
-        """
-    The training loop for the perceptron passes through the training data several
-    times and updates the weight vector for each label based on classification errors.
-    See the project description for details.
-    Use the provided self.weights[label] data structure so that
-    the classify method works correctly. Also, recall that a
-    datum is a counter from features to values for those features
-    (and thus represents a vector a values).
-    """
-
         self.features = trainingData[0].keys()  # could be useful later
-        # DO NOT ZERO OUT YOUR WEIGHTS BEFORE STARTING TRAINING, OR
-        # THE AUTOGRADER WILL LIKELY DEDUCT POINTS.
         trueWeight = {}
         bias = {}
         perceptronScore = 0
@@ -87,34 +75,34 @@ class PerceptronClassifier:
             random.shuffle(randomrange)
             for i in range(len(trainingData)):
                 "*** YOUR CODE HERE ***"
-                bestScore = None
-                bestY = None
+                highestscore = None
+                myY = None
                 datum = trainingData[randomrange[i]]
-                datum = trainingData[i]
+                #datum = trainingData[i]
                 scorearray = {}
                 for y in self.legalLabels:
-                    score = datum * self.weights[y]
-                    if score > bestScore or bestScore is None:
-                        bestScore = score
-                        bestY = y
-                    # my way
+                    score = datum * self.weights[y] + bias[y]
+                    if score > highestscore or highestscore is None:
+                        highestscore = score
+                        myY = y
                     perceptronScore = datum * trueWeight[y] + bias[y]
                     scorearray[y] = perceptronScore
-                    # z = z + (dictionary.get((a,b)) * trueWeight[y].get((a,b)))
                 actualY = trainingLabels[randomrange[i]]
-                actualY = trainingLabels[i]
+                #actualY = trainingLabels[i]
                 # Wrong guess, update weights
-                while bestY != actualY:
+                # actualY is the training label
+                # myY is the y that i get  from list
+                while myY != actualY:
                     bias[actualY] = bias[actualY] + 1
                     self.bias[actualY] = bias[actualY]
                     self.weights[actualY] = self.weights[actualY] + datum
 
-                    bias[bestY] = bias[bestY] - 1
-                    self.bias[bestY] = bias[bestY]
-                    self.weights[bestY] = self.weights[bestY] - datum
+                    bias[myY] = bias[myY] - 1
+                    self.bias[myY] = bias[myY]
+                    self.weights[myY] = self.weights[myY] - datum
 
-                    score = (datum * self.weights[bestY]) + bias[bestY]
-                    scorearray[bestY] = score
+                    score = (datum * self.weights[myY]) + bias[myY]
+                    scorearray[myY] = score
                     score = (datum * self.weights[actualY]) + bias[actualY]
                     scorearray[actualY] = score
                     bestY = max(scorearray, key=scorearray.get)
@@ -122,12 +110,6 @@ class PerceptronClassifier:
             print(incorrect)
             if incorrect == 0:
                 break
-
-        print("donzo")
-
-        guesses = self.classify(validationData)
-        correct = [guesses[i] == validationLabels[i] for i in range(len(validationLabels))].count(True)
-        print(correct)
 
 
     def findHighWeightFeatures(self, label):
@@ -137,7 +119,5 @@ class PerceptronClassifier:
         featuresWeights = []
 
         "*** YOUR CODE HERE ***"
-        #featuresWeights = self.weights[label].sortedKeys()[0z:100]
-        featuresWeights = [k for k, v in sorted(self.weights[label].items(), key=lambda (k, v): (-v, k))][0:120]
 
         return featuresWeights

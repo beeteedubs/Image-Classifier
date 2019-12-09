@@ -47,20 +47,7 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
     self.trainAndTune(trainingData, trainingLabels, validationData, validationLabels, kgrid)
 
   def trainAndTune(self, trainingData, trainingLabels, validationData, validationLabels, kgrid):
-    """
-    Trains the classifier by collecting counts over the training data, and
-    stores the Laplace smoothed estimates so that they can be used to classify.
-    Evaluate each value of k in kgrid to choose the smoothing parameter
-    that gives the best accuracy on the held-out validationData.
 
-    trainingData and validationData are lists of feature Counters.  The corresponding
-    label lists contain the correct label for each datum.
-
-    To get the list of all possible features or labels, use self.features and
-    self.legalLabels.
-    """
-
-    "*** YOUR CODE HERE ***"
     #We'll use this for P(0), P(1)...P(9) or face
     prior = util.Counter()
     for x in trainingLabels:
@@ -72,7 +59,7 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
 
     for x in self.features:
       #go through each feature, how many times 0/1/2/3/4 appears
-      individualcount[x] = {0: util.Counter(), 1: util.Counter(), 2: util.Counter(), 3: util.Counter(), 4: util.Counter()}
+      individualcount[x] = {0: util.Counter(), 1: util.Counter(), 2: util.Counter()}
       total[x] = util.Counter() #useful for smoothing later on
 
     # Calculate totals and counts
@@ -82,51 +69,28 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
         individualcount[y][value][label] = individualcount[y][value][label] + 1.0
         total[y][label] = total[y][label] + 1.0
 
-    bestConditionals = {}
     bestAccuracy = None
     # Evaluate each k, and use the one that yields the best accuracy
-    for k in kgrid or [0.0]:
-      correct = 0
-      smoothprobability = {}
-      # for all features create 0-3 util counters
-      # <feature>: {0: {}, 1: {}, 2: {}, 3: {}, 4: {}}
-      for x in self.features:
-        smoothprobability[x] = {0: util.Counter(), 1: util.Counter(), 2: util.Counter()}
-      #smoothing
-      #for all features
-      for x in self.features:
-        #for all 0-4 values of features
-        for value in [0,1,2]:
-          #for all 1-9
-          for y in self.legalLabels:
-            #smooth it out
-            #basically holds the probability that a given lighted up feature is a certain label
-            # P(phi[](x) | y = 1...9) => ex P(phi[0] | y(1) ) = Feature 1, (7,3) has a .96% chance to light my way 0 times for 0, 91%  for 4
-            smoothprobability[x][value][y] = (individualcount[x][value][y] + k) / (total[x][y] + k)
-            # Check the accuracy associated with this k
-      self.smoothprobability = smoothprobability
-      dictionaryForLabels = []
-      for y in self.legalLabels:
-        line = []
-        for i in range(len(trainingLabels)):
-          if trainingLabels[i] == y:
-            line.append(i)
-        dictionaryForLabels.append(line)
-
-
-      guesses = self.classify(validationData)
-      for i, guess in enumerate(guesses):
-        if validationLabels[i] == guess:
-          correct = correct + 1.0
-      accuracy = correct / len(guesses)
-      # Keep the best k iteration
-      if accuracy > bestAccuracy or bestAccuracy is None:
-        bestAccuracy = accuracy
-        bestConditionals = smoothprobability
-        self.k = k
-    print(self.k)
-
-    self.smoothprobability = bestConditionals
+    k = .001
+    correct = 0
+    smoothprobability = {}
+    # for all features create 0-3 util counters
+    # <feature>: {0: {}, 1: {}, 2: {}, 3: {}, 4: {}}
+    for x in self.features:
+      smoothprobability[x] = {0: util.Counter(), 1: util.Counter(), 2: util.Counter()}
+    # smoothing
+    # for all features
+    for x in self.features:
+      # for all 0-4 values of features
+      for value in [0, 1, 2]:
+        # for all 1-9
+        for y in self.legalLabels:
+          # smooth it out
+          # basically holds the probability that a given lighted up feature is a certain label
+          # P(phi[](x) | y = 1...9) => ex P(phi[0] | y(1) ) = Feature 1, (7,3) has a .96% chance to light my way 0 times for 0, 91%  for 4
+          smoothprobability[x][value][y] = (individualcount[x][value][y] + k) / (total[x][y] + k*2)
+          # Check the accuracy associated with this k
+    self.smoothprobability = smoothprobability
 
   def classify(self, testData):
     """
@@ -171,7 +135,8 @@ class NaiveBayesClassifier(classificationMethod.ClassificationMethod):
       logJoint[x] = m.log(self.prior[x])
       for y in self.smoothprobability:
         prob = self.smoothprobability[y][datum[y]][x]
-        logJoint[x] += (prob and m.log(prob))
+        if prob > 0:
+          logJoint[x] += m.log(prob)
     return logJoint
 
   def calculate(self, datum):
