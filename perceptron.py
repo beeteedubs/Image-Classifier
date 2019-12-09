@@ -105,7 +105,7 @@ class PerceptronClassifier:
                     scorearray[myY] = score
                     score = (datum * self.weights[actualY]) + bias[actualY]
                     scorearray[actualY] = score
-                    bestY = max(scorearray, key=scorearray.get)
+                    myY = max(scorearray, key=scorearray.get)
                     incorrect += 1
             print(incorrect)
             if incorrect == 0:
